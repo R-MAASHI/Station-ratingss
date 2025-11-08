@@ -1,0 +1,148 @@
+# Station-ratingss
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خريطة محطات المنطقة</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body { margin:0; padding:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
+#map { height: 100vh; }
+.leaflet-popup-content input {
+  width: 100%;
+  margin-top:5px;
+  padding:5px;
+  border-radius:5px;
+  border:1px solid #ccc;
+}
+.leaflet-popup-content button {
+  margin-top:5px;
+  padding:5px 10px;
+  background-color:#3f51b5;
+  color:#fff;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+}
+.leaflet-popup-content button:hover {
+  background-color:#303f9f;
+}
+.add-station {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  z-index: 1000;
+}
+.add-station input {
+  padding:5px;
+  border-radius:5px;
+  border:1px solid #ccc;
+  margin-right:5px;
+}
+.add-station button {
+  padding:5px 10px;
+  border:none;
+  border-radius:5px;
+  background-color:#4caf50;
+  color:#fff;
+  cursor:pointer;
+}
+.add-station button:hover {
+  background-color:#388e3c;
+}
+</style>
+</head>
+<body>
+
+<div class="add-station">
+  <input type="text" id="newStationName" placeholder="اسم المحطة">
+  <input type="number" id="newLat" placeholder="خط العرض" step="0.0001">
+  <input type="number" id="newLng" placeholder="خط الطول" step="0.0001">
+  <button onclick="addStation()">إضافة محطة</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// إعداد الخريطة
+var map = L.map('map').setView([24.7136, 46.6753], 10); // الرياض كمثال
+
+// إضافة خريطة OpenStreetMap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+}).addTo(map);
+
+// بيانات المحطات افتراضية
+var stations = [
+  {name: "محطة 1", lat:24.7136, lng:46.6753, notes: []},
+  {name: "محطة 2", lat:24.7436, lng:46.6853, notes: []},
+  {name: "محطة 3", lat:24.7236, lng:46.6953, notes: []}
+];
+
+function createMarker(station, index){
+  var marker = L.marker([station.lat, station.lng]).addTo(map);
+  marker.bindPopup(getPopupContent(index));
+}
+
+// إنشاء العلامات
+stations.forEach((station,index)=>{
+  createMarker(station,index);
+});
+
+// توليد محتوى النافذة
+function getPopupContent(index){
+  var station = stations[index];
+  var notesList = station.notes.length ? station.notes.map(n=>"<li>"+n+"</li>").join("") : "<li>لا توجد ملاحظات بعد</li>";
+  var html = `
+    <strong>${station.name}</strong>
+    <ul id="notes-${index}">${notesList}</ul>
+    <input type="text" id="input-${index}" placeholder="أضف ملاحظة جديدة">
+    <button onclick="addNote(${index})">إضافة ملاحظة</button>
+  `;
+  return html;
+}
+
+// إضافة ملاحظة
+function addNote(index){
+  var input = document.getElementById('input-'+index);
+  var value = input.value.trim();
+  if(value){
+    stations[index].notes.push(value);
+    input.value = '';
+    // تحديث المحتوى
+    map.eachLayer(function(layer){
+      if(layer instanceof L.Marker){
+        var latlng = layer.getLatLng();
+        if(latlng.lat===stations[index].lat && latlng.lng===stations[index].lng){
+          layer.setPopupContent(getPopupContent(index)).openPopup();
+        }
+      }
+    });
+  }
+}
+
+// إضافة محطة جديدة
+function addStation(){
+  var name = document.getElementById('newStationName').value.trim();
+  var lat = parseFloat(document.getElementById('newLat').value);
+  var lng = parseFloat(document.getElementById('newLng').value);
+  if(name && !isNaN(lat) && !isNaN(lng)){
+    var newStation = {name:name, lat:lat, lng:lng, notes: []};
+    stations.push(newStation);
+    createMarker(newStation, stations.length-1);
+    document.getElementById('newStationName').value='';
+    document.getElementById('newLat').value='';
+    document.getElementById('newLng').value='';
+  } else {
+    alert("رجاءً أدخلي اسم المحطة وإحداثيات صحيحة.");
+  }
+}
+</script>
+</body>
+</html>
